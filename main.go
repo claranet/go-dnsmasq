@@ -16,24 +16,26 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-	logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
+	log "github.com/sirupsen/logrus"
+	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
 	"github.com/codegangsta/cli"
 	"github.com/miekg/dns"
 
 	"github.com/janeczku/go-dnsmasq/hostsfile"
 	"github.com/janeczku/go-dnsmasq/resolvconf"
 	"github.com/janeczku/go-dnsmasq/server"
+	"github.com/janeczku/go-dnsmasq/control"
 	"github.com/janeczku/go-dnsmasq/stats"
 )
 
 // set at build time
 var Version = "dev"
 
+const controlPort = 8053
+
 var (
 	nameservers   = []string{}
 	searchDomains = []string{}
-	hostPort      = ""
 	listen        = ""
 )
 
@@ -115,6 +117,28 @@ func main() {
 			EnvVar: "DNSMASQ_RCACHE_TTL",
 		},
 		cli.BoolFlag{
+			Name:   "rcache-ttl-from-resp",
+			Usage:  "Use TTL from response. If multiple anwsers, lowest value is used; `rcache-tll` and `rcache-tll-max` are used as min and max values",
+			EnvVar: "GO_DNSMASQ_RSTALE_TTL_FROM_RESP",
+		},
+		cli.IntFlag{
+			Name:   "rcache-ttl-max",
+			Value:  3600,
+			Usage:  "Used with `rcache-ttl-from-resp`. If ttl from response is higher than max, max is used",
+			EnvVar: "GO_DNSMASQ_RCACHE_TTL_MAX",
+		},
+		cli.IntFlag{
+			Name:   "rstale-ttl",
+			Value:  0,
+			Usage:  "Stale retention in `seconds` for response cache entries. Stale retention keeps cache after regular TTL if name server are not reachable",
+			EnvVar: "GO_DNSMASQ_RSTALE_TTL",
+		},
+		cli.BoolFlag{
+			Name:   "rcache-non-negative",
+			Usage:  "Cache only non negative responses",
+			EnvVar: "GO_DNSMASQ_CACHE_NON_NEGATIVE",
+		},
+		cli.BoolFlag{
 			Name:   "no-rec",
 			Usage:  "Disable recursion",
 			EnvVar: "DNSMASQ_NOREC",
@@ -153,7 +177,7 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:   "multithreading",
-			Usage:  "Enable multithreading (experimental)",
+			Usage:  "Sets GOMAXPROCS equal to number od CPU's",
 			EnvVar: "DNSMASQ_MULTITHREADING",
 		},
 	}
@@ -176,7 +200,7 @@ func main() {
 		}
 
 		if c.Bool("multithreading") {
-			runtime.GOMAXPROCS(runtime.NumCPU() + 1)
+			runtime.GOMAXPROCS(runtime.NumCPU())
 		}
 
 		if c.Bool("verbose") {
@@ -249,6 +273,10 @@ func main() {
 			ReadTimeout:     2 * time.Second,
 			RCache:          c.Int("rcache"),
 			RCacheTtl:       c.Int("rcache-ttl"),
+			RCacheTtlFromResp:      c.Bool("rcache-ttl-from-resp"),
+			RCacheTtlMax:       c.Int("rcache-ttl-max"),
+			RStaleTtl:        c.Int("rstale-ttl"),
+			RCacheNonNegative:  c.Bool("rcache-non-negative"),
 			Verbose:         c.Bool("verbose"),
 		}
 
@@ -312,6 +340,7 @@ func main() {
 		}
 
 		s := server.New(hf, config, Version)
+		ctrl := control.New(controlPort, s.GetCacheRef())
 
 		defer s.Stop()
 
@@ -336,6 +365,13 @@ func main() {
 			}
 		}()
 
+
+		go func() {
+			if cErr := ctrl.Run(); cErr != nil {
+				log.Errorf("Control server error: %s", cErr)
+			}
+		}()
+
 		exitErr = <-exitReason
 		if exitErr != nil {
 			log.Fatalf("Server error: %s", err)
@@ -344,7 +380,10 @@ func main() {
 		return nil
 	}
 
-	app.Run(os.Args)
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Error("Fail to start app")
+	}
 }
 
 func validateHostPort(hostPort string) error {

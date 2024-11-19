@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Jan Broer. All rights reserved.
+ // Copyright (c) 2015 Jan Broer. All rights reserved.
 // Use of this source code is governed by The MIT License (MIT) that can be
 // found in the LICENSE file.
 
@@ -6,13 +6,13 @@
 package hosts
 
 import (
-	"io/ioutil"
+	"os"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/miekg/dns"
 )
 
@@ -86,7 +86,7 @@ func (h *Hostsfile) FindReverse(name string) (host string, err error) {
 }
 
 func (h *Hostsfile) loadHostEntries() error {
-	data, err := ioutil.ReadFile(h.file.path)
+	data, err := os.ReadFile(h.file.path)
 	if err != nil {
 		return err
 	}
@@ -106,9 +106,9 @@ func (h *Hostsfile) monitorHostEntries(poll int) {
 	}
 
 	t := time.Duration(poll) * time.Second
+	ticker := time.NewTicker(t)
 
-	for _ = range time.Tick(t) {
-		//log.Printf("go-dnsmasq: checking %q for updates…", hf.path)
+	for _ = range ticker.C {
 
 		mtime, size, err := hostsFileMetadata(hf.path)
 		if err != nil {

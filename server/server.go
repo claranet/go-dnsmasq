@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/coreos/go-systemd/activation"
 	"github.com/janeczku/go-dnsmasq/cache"
 	"github.com/miekg/dns"
@@ -36,13 +36,19 @@ type Hostfile interface {
 
 // New returns a new server.
 func New(hostfile Hostfile, config *Config, v string) *server {
+	// log.Debugf("%v", config.RCache)
+	// log.Debugf("%v", config.RCacheTtl)
+	// log.Debugf("%v", config.RStaleTtl)
+	// log.Debugf("%v", config.RCacheTtlFromResp)
+	// log.Debugf("%v", config.RCacheTtlMax)
+	// log.Debugf("%v", config.RCacheNonNegative)
 	return &server{
 		hosts:   hostfile,
 		config:  config,
 		version: v,
 
 		group:        new(sync.WaitGroup),
-		rcache:       cache.New(config.RCache, config.RCacheTtl),
+		rcache:       cache.New(config.RCache, config.RCacheTtl, config.RStaleTtl, config.RCacheTtlFromResp, config.RCacheTtlMax),
 		dnsUDPclient: &dns.Client{Net: "udp", ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
 		dnsTCPclient: &dns.Client{Net: "tcp", ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
 	}
@@ -62,11 +68,11 @@ func (s *server) Run() error {
 	}
 
 	if s.config.Systemd {
-		packetConns, err := activation.PacketConns(false)
+		packetConns, err := activation.PacketConns()
 		if err != nil {
 			return err
 		}
-		listeners, err := activation.Listeners(true)
+		listeners, err := activation.Listeners()
 		if err != nil {
 			return err
 		}
@@ -177,17 +183,20 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		StatsDnssecOkCount.Inc(1)
 	}
 
-	log.Debugf("[%d] Got query for '%s %s' from %s", req.Id, dns.TypeToString[q.Qtype], q.Name, w.RemoteAddr().String())
+	log.Infof("[%d] Got query for '%s %s' from %s", req.Id, dns.TypeToString[q.Qtype], q.Name, w.RemoteAddr().String())
 
-	// Check cache first.
-	m1 := s.rcache.Hit(q, dnssec, tcp, m.Id)
+	// Check cache first (`false`in the end means serve NO stale).
+	m1 := s.rcache.Hit(q, dnssec, tcp, m.Id, s.config.RStaleTtl > 0, false)
 	if m1 != nil {
-		log.Debugf("[%d] Found cached response for this query", req.Id)
+		log.Infof("[%d] Found cached response for this query", req.Id)
 		if tcp {
 			if _, overflow := Fit(m1, dns.MaxMsgSize, tcp); overflow {
 				msgFail := new(dns.Msg)
 				s.ServerFailure(msgFail, req)
-				w.WriteMsg(msgFail)
+				err := w.WriteMsg(msgFail)
+				if err != nil {
+					log.Error("Write response fail")
+				}
 				return
 			}
 		} else {
@@ -220,7 +229,10 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 				if _, overflow := Fit(m, dns.MaxMsgSize, tcp); overflow {
 					msgFail := new(dns.Msg)
 					s.ServerFailure(msgFail, req)
-					w.WriteMsg(msgFail)
+					err := w.WriteMsg(msgFail)
+					if err != nil {
+						log.Error("Write response fail")
+					}
 					return
 				}
 			} else {
@@ -249,8 +261,8 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 
 	if q.Qtype == dns.TypePTR && strings.HasSuffix(name, ".in-addr.arpa.") || strings.HasSuffix(name, ".ip6.arpa.") {
 		local = false
-		resp := s.ServeDNSReverse(w, req)
-		if resp != nil {
+		resp, staleRes := s.ServeDNSReverse(w, req)
+		if resp != nil && !staleRes {
 			s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), resp)
 		}
 		return
@@ -283,8 +295,18 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 
 	// Forward all other queries
 	local = false
-	resp := s.ServeDNSForward(w, req)
-	if resp != nil {
+	storeInCache := true
+	// Check cache for stale records (`false`in the end means serve stale).
+	mStale := s.rcache.Hit(q, dnssec, tcp, m.Id, s.config.RStaleTtl > 0, true)
+	resp, staleRes := s.ServeDNSForward(w, req, mStale)
+	// If flag `RCacheNonNegative` is set, only cache non negative responses
+	// A non negative response is a response that has status: NOERROR
+	if s.config.RCacheNonNegative && resp.Rcode != dns.RcodeSuccess {
+		storeInCache = false
+		log.Debugf("Got negative response")
+	}
+
+	if resp != nil && storeInCache && !staleRes {
 		s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), resp)
 	}
 
@@ -369,8 +391,13 @@ func (s *server) RoundRobin(rrs []dns.RR) {
 
 }
 
+func (s *server) GetCacheRef() *cache.Cache {
+	return s.rcache
+}
+
 // isTCP returns true if the client is connecting over TCP.
 func isTCP(w dns.ResponseWriter) bool {
 	_, ok := w.RemoteAddr().(*net.TCPAddr)
 	return ok
 }
+
