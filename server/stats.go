@@ -12,9 +12,8 @@ type Counter interface {
 
 type nopCounter struct{}
 
-func (nopCounter) Inc(_ int64) {}
+func (nopCounter) Inc(_ int64)  {}
 func (nopCounter) Count() int64 { return 0 }
-
 
 var (
 	StatsForwardCount     Counter = nopCounter{}
@@ -23,12 +22,11 @@ var (
 	StatsRequestCount     Counter = nopCounter{}
 	StatsDnssecOkCount    Counter = nopCounter{}
 	StatsNameErrorCount   Counter = nopCounter{}
-	StatsRefusedCount   Counter = nopCounter{}
+	StatsRefusedCount     Counter = nopCounter{}
 	StatsNoDataCount      Counter = nopCounter{}
-	StatsDnssecCacheMiss Counter = nopCounter{}
-	StatsCacheMiss Counter = nopCounter{}
-	StatsCacheHit  Counter = nopCounter{}
-	StatsStaleCacheHit  Counter = nopCounter{}
-	StatsRequestFail Counter = nopCounter{}
-
+	StatsDnssecCacheMiss  Counter = nopCounter{}
+	StatsCacheMiss        Counter = nopCounter{}
+	StatsCacheHit         Counter = nopCounter{}
+	StatsStaleCacheHit    Counter = nopCounter{}
+	StatsRequestFail      Counter = nopCounter{}
 )

@@ -8,10 +8,10 @@
 package stats
 
 import (
-	"net"
-	"os"
 	"github.com/rcrowley/go-metrics"
 	"github.com/rcrowley/go-metrics/stathat"
+	"net"
+	"os"
 
 	"github.com/claranet/go-dnsmasq/server"
 	log "github.com/sirupsen/logrus"
@@ -24,26 +24,25 @@ var (
 )
 
 var counters = map[string]*server.Counter{
-	"go-dnsmasq-forward-requests": &server.StatsForwardCount,
+	"go-dnsmasq-forward-requests":      &server.StatsForwardCount,
 	"go-dnsmasq-stub-forward-requests": &server.StatsStubForwardCount,
-	"go-dnsmasq-dnssecok-requests": &server.StatsDnssecOkCount,
-	"go-dnsmasq-dnssec-cache-miss": &server.StatsDnssecCacheMiss,
-	"go-dnsmasq-internal-lookups": &server.StatsLookupCount,
-	"go-dnsmasq-requests": &server.StatsRequestCount,
-	"go-dnsmasq-nameerror-responses": &server.StatsNameErrorCount,
-	"go-dnsmasq-refused": &server.StatsRefusedCount,
-	"go-dnsmasq-nodata-responses": &server.StatsNoDataCount,
-	"go-dnsmasq-cache-miss": &server.StatsCacheMiss,
-	"go-dnsmasq-cache-hit": &server.StatsCacheHit,
-	"go-dnsmasq-stale-cache-hit": &server.StatsStaleCacheHit,
-	"go-dnsmasq-stale-request-fail": &server.StatsRequestFail,
+	"go-dnsmasq-dnssecok-requests":     &server.StatsDnssecOkCount,
+	"go-dnsmasq-dnssec-cache-miss":     &server.StatsDnssecCacheMiss,
+	"go-dnsmasq-internal-lookups":      &server.StatsLookupCount,
+	"go-dnsmasq-requests":              &server.StatsRequestCount,
+	"go-dnsmasq-nameerror-responses":   &server.StatsNameErrorCount,
+	"go-dnsmasq-refused":               &server.StatsRefusedCount,
+	"go-dnsmasq-nodata-responses":      &server.StatsNoDataCount,
+	"go-dnsmasq-cache-miss":            &server.StatsCacheMiss,
+	"go-dnsmasq-cache-hit":             &server.StatsCacheHit,
+	"go-dnsmasq-stale-cache-hit":       &server.StatsStaleCacheHit,
+	"go-dnsmasq-stale-request-fail":    &server.StatsRequestFail,
 }
 
 func init() {
 	if graphitePrefix == "" {
 		graphitePrefix = "go-dnsmasq"
 	}
-
 
 	for k, v := range counters {
 		*v = metrics.NewCounter()

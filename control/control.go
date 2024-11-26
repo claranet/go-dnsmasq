@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/claranet/go-dnsmasq/server"
 	"github.com/claranet/go-dnsmasq/cache"
+	"github.com/claranet/go-dnsmasq/server"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,7 +14,7 @@ const defaultControlAddr = "127.0.0.1"
 
 type control struct {
 	port int
-	cch *cache.Cache
+	cch  *cache.Cache
 }
 
 type PingResponse struct {
@@ -22,21 +22,21 @@ type PingResponse struct {
 }
 
 type StatsResponse struct {
-	StatsForwardCount     int64 `json:"forwardCount"`
-	StatsStubForwardCount int64 `json:"stubForwardCount"`
-	StatsLookupCount      int64 `json:"lookupCount"`
-	StatsRequestCount     int64 `json:"requestCount"`
-	StatsDnssecOkCount    int64 `json:"dnssecOkCount"`
-	StatsNameErrorCount   int64 `json:"nameErrorCount"`
-	StatsNoDataCount      int64 `json:"noDataCount"`
-	StatsDnssecCacheMiss int64 `json:"dnssecCacheMiss"`
-	StatsCacheMiss      int64 `json:"cacheMiss"`
-	StatsCacheHit       int64 `json:"cacheHit"`
-	StatsRequestFail int64 `json:"requestFail"`
-	StatsStaleCacheHit  int64 `json:"staleCacheHit"`
-	StatsCacheSize		int `json:"cacheSize"`
-	StatsCacheCapacity		int `json:"cacheCapacity"`
-	StatsCacheHitRate		float64 `json:"cacheHitRate"`
+	StatsForwardCount     int64   `json:"forwardCount"`
+	StatsStubForwardCount int64   `json:"stubForwardCount"`
+	StatsLookupCount      int64   `json:"lookupCount"`
+	StatsRequestCount     int64   `json:"requestCount"`
+	StatsDnssecOkCount    int64   `json:"dnssecOkCount"`
+	StatsNameErrorCount   int64   `json:"nameErrorCount"`
+	StatsNoDataCount      int64   `json:"noDataCount"`
+	StatsDnssecCacheMiss  int64   `json:"dnssecCacheMiss"`
+	StatsCacheMiss        int64   `json:"cacheMiss"`
+	StatsCacheHit         int64   `json:"cacheHit"`
+	StatsRequestFail      int64   `json:"requestFail"`
+	StatsStaleCacheHit    int64   `json:"staleCacheHit"`
+	StatsCacheSize        int     `json:"cacheSize"`
+	StatsCacheCapacity    int     `json:"cacheCapacity"`
+	StatsCacheHitRate     float64 `json:"cacheHitRate"`
 }
 
 func writeResponse(w http.ResponseWriter, rsp []byte, err error) {
@@ -67,21 +67,21 @@ func (c *control) statsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := StatsResponse{
-		StatsForwardCount: server.StatsForwardCount.Count(),
+		StatsForwardCount:     server.StatsForwardCount.Count(),
 		StatsStubForwardCount: server.StatsStubForwardCount.Count(),
-		StatsLookupCount: server.StatsLookupCount.Count(),
-		StatsRequestCount: server.StatsRequestCount.Count(),
-		StatsDnssecOkCount: server.StatsDnssecOkCount.Count(),
-		StatsNameErrorCount: server.StatsNameErrorCount.Count(),
-		StatsNoDataCount: server.StatsNoDataCount.Count(),
-		StatsDnssecCacheMiss: server.StatsDnssecCacheMiss.Count(),
-		StatsCacheMiss: server.StatsCacheMiss.Count(),
-		StatsCacheHit: server.StatsCacheHit.Count(),
-		StatsRequestFail: server.StatsRequestFail.Count(),
-		StatsStaleCacheHit: server.StatsStaleCacheHit.Count(),
-		StatsCacheSize:		c.cch.CacheSize(),
-		StatsCacheCapacity:	c.cch.Capacity(),
-		StatsCacheHitRate: hitRate,
+		StatsLookupCount:      server.StatsLookupCount.Count(),
+		StatsRequestCount:     server.StatsRequestCount.Count(),
+		StatsDnssecOkCount:    server.StatsDnssecOkCount.Count(),
+		StatsNameErrorCount:   server.StatsNameErrorCount.Count(),
+		StatsNoDataCount:      server.StatsNoDataCount.Count(),
+		StatsDnssecCacheMiss:  server.StatsDnssecCacheMiss.Count(),
+		StatsCacheMiss:        server.StatsCacheMiss.Count(),
+		StatsCacheHit:         server.StatsCacheHit.Count(),
+		StatsRequestFail:      server.StatsRequestFail.Count(),
+		StatsStaleCacheHit:    server.StatsStaleCacheHit.Count(),
+		StatsCacheSize:        c.cch.CacheSize(),
+		StatsCacheCapacity:    c.cch.Capacity(),
+		StatsCacheHitRate:     hitRate,
 	}
 
 	jsonResponse, err := json.Marshal(response)
@@ -104,7 +104,7 @@ func getAddr(port int) string {
 func New(port int, cch *cache.Cache) *control {
 	return &control{
 		port: port,
-		cch: cch,
+		cch:  cch,
 	}
 }
 

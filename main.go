@@ -18,15 +18,15 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
 	"github.com/codegangsta/cli"
 	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
+	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
 
+	"github.com/claranet/go-dnsmasq/control"
 	"github.com/claranet/go-dnsmasq/hostsfile"
 	"github.com/claranet/go-dnsmasq/resolvconf"
 	"github.com/claranet/go-dnsmasq/server"
-	"github.com/claranet/go-dnsmasq/control"
 	"github.com/claranet/go-dnsmasq/stats"
 )
 
@@ -260,26 +260,26 @@ func main() {
 		}
 
 		config := &server.Config{
-			DnsAddr:         listen,
-			DefaultResolver: c.Bool("default-resolver"),
-			Nameservers:     nameservers,
-			Systemd:         c.Bool("systemd"),
-			SearchDomains:   searchDomains,
-			EnableSearch:    enableSearch,
-			Hostsfile:       c.String("hostsfile"),
-			PollInterval:    c.Int("hostsfile-poll"),
-			RoundRobin:      c.Bool("round-robin"),
-			NoRec:           c.Bool("no-rec"),
-			FwdNdots:        c.Int("fwd-ndots"),
-			Ndots:           c.Int("ndots"),
-			ReadTimeout:     2 * time.Second,
-			RCache:          c.Int("rcache"),
-			RCacheTtl:       c.Int("rcache-ttl"),
-			RCacheTtlFromResp:      c.Bool("rcache-ttl-from-resp"),
-			RCacheTtlMax:       c.Int("rcache-ttl-max"),
-			RStaleTtl:        c.Int("rstale-ttl"),
-			RCacheNonNegative:  c.Bool("rcache-non-negative"),
-			Verbose:         c.Bool("verbose"),
+			DnsAddr:           listen,
+			DefaultResolver:   c.Bool("default-resolver"),
+			Nameservers:       nameservers,
+			Systemd:           c.Bool("systemd"),
+			SearchDomains:     searchDomains,
+			EnableSearch:      enableSearch,
+			Hostsfile:         c.String("hostsfile"),
+			PollInterval:      c.Int("hostsfile-poll"),
+			RoundRobin:        c.Bool("round-robin"),
+			NoRec:             c.Bool("no-rec"),
+			FwdNdots:          c.Int("fwd-ndots"),
+			Ndots:             c.Int("ndots"),
+			ReadTimeout:       2 * time.Second,
+			RCache:            c.Int("rcache"),
+			RCacheTtl:         c.Int("rcache-ttl"),
+			RCacheTtlFromResp: c.Bool("rcache-ttl-from-resp"),
+			RCacheTtlMax:      c.Int("rcache-ttl-max"),
+			RStaleTtl:         c.Int("rstale-ttl"),
+			RCacheNonNegative: c.Bool("rcache-non-negative"),
+			Verbose:           c.Bool("verbose"),
 		}
 
 		resolvconf.Clean()
@@ -366,7 +366,6 @@ func main() {
 				exitReason <- err
 			}
 		}()
-
 
 		go func() {
 			if cErr := ctrl.Run(); cErr != nil {
