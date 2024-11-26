@@ -13,7 +13,7 @@ import (
 	"github.com/rcrowley/go-metrics"
 	"github.com/rcrowley/go-metrics/stathat"
 
-	"github.com/janeczku/go-dnsmasq/server"
+	"github.com/claranet/go-dnsmasq/server"
 	log "github.com/sirupsen/logrus"
 )
 
