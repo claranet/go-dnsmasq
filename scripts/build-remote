@@ -14,7 +14,7 @@ BUILD_CONTAINER=$(docker run -d \
     -arch "$GOARCH" \
     -output="go-dnsmasq_{{.OS}}-{{.Arch}}" \
     -tags="netgo" \
-    -ldflags="-w -s -X github.com/janeczku/go-dnsmasq/main.Version `git describe --tags`")
+    -ldflags="-w -s -X github.com/claranet/go-dnsmasq/main.Version `git describe --tags`")
 cleanup_container() {
     docker rm -v ${BUILD_CONTAINER}
 }

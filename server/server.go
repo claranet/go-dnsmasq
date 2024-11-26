@@ -3,6 +3,8 @@
 // Use of this source code is governed by The MIT License (MIT) that can be
 // found in the LICENSE file.
 
+// Fork 2024 maintaining MIT License (MIT)
+
 package server
 
 import (
@@ -14,7 +16,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/coreos/go-systemd/activation"
-	"github.com/janeczku/go-dnsmasq/cache"
+	"github.com/claranet/go-dnsmasq/cache"
 	"github.com/miekg/dns"
 )
 

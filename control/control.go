@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/janeczku/go-dnsmasq/server"
-	"github.com/janeczku/go-dnsmasq/cache"
+	"github.com/claranet/go-dnsmasq/server"
+	"github.com/claranet/go-dnsmasq/cache"
 	log "github.com/sirupsen/logrus"
 )
 

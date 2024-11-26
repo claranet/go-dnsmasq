@@ -28,16 +28,16 @@ scripts/build-min $VERSION
 # UPX compression
 echo "Packing binaries with UPX..."
 for BINARY in go-dnsmasq*_linux*; do
-    docker run --rm -v `pwd`:/go/src/github.com/janeczku/go-dnsmasq \
+    docker run --rm -v `pwd`:/go/src/github.com/claranet/go-dnsmasq \
         go-dnsmasq-build goupx $BINARY
 done
 
 for BINARY in go-dnsmasq*_darwin*; do
-    docker run --rm -v `pwd`:/go/src/github.com/janeczku/go-dnsmasq \
+    docker run --rm -v `pwd`:/go/src/github.com/claranet/go-dnsmasq \
         go-dnsmasq-build upx $BINARY
 done
 echo "Generating file hashs..."
-docker run --rm -v `pwd`:/go/src/github.com/janeczku/go-dnsmasq go-dnsmasq-build ./scripts/generate-sums
+docker run --rm -v `pwd`:/go/src/github.com/claranet/go-dnsmasq go-dnsmasq-build ./scripts/generate-sums
 echo "Uploading release..."
 docker run --rm -e GITHUB_TOKEN go-dnsmasq-build github-release release \
     --user janeczku \
@@ -47,7 +47,7 @@ docker run --rm -e GITHUB_TOKEN go-dnsmasq-build github-release release \
     --description "" \
     --pre-release
 for BINARY in go-dnsmasq*_*; do
-    docker run --rm -e GITHUB_TOKEN -v `pwd`:/go/src/github.com/janeczku/go-dnsmasq \
+    docker run --rm -e GITHUB_TOKEN -v `pwd`:/go/src/github.com/claranet/go-dnsmasq \
         go-dnsmasq-build github-release upload \
         --user janeczku \
         --repo go-dnsmasq \
