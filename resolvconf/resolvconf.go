@@ -9,12 +9,12 @@ package resolvconf
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
+	"io"
 	"regexp"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 const RESOLVCONF_COMMENT_ADD = "# added by go-dnsmasq"
@@ -30,7 +30,10 @@ func StoreAddress(address string) error {
 }
 
 func Clean() {
-	updateResolvConf("", RESOLVCONF_PATH)
+	err := updateResolvConf("", RESOLVCONF_PATH)
+	if err != nil {
+		log.Errorf("Fail to update %s", RESOLVCONF_PATH)
+	}
 }
 
 func updateResolvConf(insert, path string) error {
@@ -40,14 +43,14 @@ func updateResolvConf(insert, path string) error {
 	}
 	defer f.Close()
 
-	orig, err := ioutil.ReadAll(f)
+	orig, err := io.ReadAll(f)
 	if err != nil {
 		return err
 	}
 
 	orig = resolvConfPattern.ReplaceAllLiteral(orig, []byte{})
 
-	if _, err = f.Seek(0, os.SEEK_SET); err != nil {
+	if _, err = f.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
 
@@ -77,7 +80,7 @@ func updateResolvConf(insert, path string) error {
 	}
 
 	// contents may have been shortened, so truncate where we are
-	pos, err := f.Seek(0, os.SEEK_CUR)
+	pos, err := f.Seek(0, io.SeekCurrent)
 	if err != nil {
 		return err
 	}

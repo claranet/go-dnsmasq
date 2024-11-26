@@ -10,11 +10,11 @@ package stats
 import (
 	"net"
 	"os"
-
 	"github.com/rcrowley/go-metrics"
 	"github.com/rcrowley/go-metrics/stathat"
 
 	"github.com/janeczku/go-dnsmasq/server"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -23,40 +23,36 @@ var (
 	stathatUser    = os.Getenv("STATHAT_USER")
 )
 
+var counters = map[string]*server.Counter{
+	"go-dnsmasq-forward-requests": &server.StatsForwardCount,
+	"go-dnsmasq-stub-forward-requests": &server.StatsStubForwardCount,
+	"go-dnsmasq-dnssecok-requests": &server.StatsDnssecOkCount,
+	"go-dnsmasq-dnssec-cache-miss": &server.StatsDnssecCacheMiss,
+	"go-dnsmasq-internal-lookups": &server.StatsLookupCount,
+	"go-dnsmasq-requests": &server.StatsRequestCount,
+	"go-dnsmasq-nameerror-responses": &server.StatsNameErrorCount,
+	"go-dnsmasq-refused": &server.StatsRefusedCount,
+	"go-dnsmasq-nodata-responses": &server.StatsNoDataCount,
+	"go-dnsmasq-cache-miss": &server.StatsCacheMiss,
+	"go-dnsmasq-cache-hit": &server.StatsCacheHit,
+	"go-dnsmasq-stale-cache-hit": &server.StatsStaleCacheHit,
+	"go-dnsmasq-stale-request-fail": &server.StatsRequestFail,
+}
+
 func init() {
 	if graphitePrefix == "" {
 		graphitePrefix = "go-dnsmasq"
 	}
 
-	server.StatsForwardCount = metrics.NewCounter()
-	metrics.Register("go-dnsmaq-forward-requests", server.StatsForwardCount)
 
-	server.StatsStubForwardCount = metrics.NewCounter()
-	metrics.Register("go-dnsmaq-stub-forward-requests", server.StatsStubForwardCount)
-
-	server.StatsDnssecOkCount = metrics.NewCounter()
-	metrics.Register("go-dnsmaq-dnssecok-requests", server.StatsDnssecOkCount)
-
-	server.StatsDnssecCacheMiss = metrics.NewCounter()
-	metrics.Register("go-dnsmaq-dnssec-cache-miss", server.StatsDnssecCacheMiss)
-
-	server.StatsLookupCount = metrics.NewCounter()
-	metrics.Register("go-dnsmaq-internal-lookups", server.StatsLookupCount)
-
-	server.StatsRequestCount = metrics.NewCounter()
-	metrics.Register("go-dnsmaq-requests", server.StatsRequestCount)
-
-	server.StatsNameErrorCount = metrics.NewCounter()
-	metrics.Register("go-dnsmaq-nameerror-responses", server.StatsNameErrorCount)
-
-	server.StatsNoDataCount = metrics.NewCounter()
-	metrics.Register("go-dnsmaq-nodata-responses", server.StatsNoDataCount)
-
-	server.StatsCacheMiss = metrics.NewCounter()
-	metrics.Register("go-dnsmaq-nodata-responses", server.StatsCacheMiss)
-
-	server.StatsCacheHit = metrics.NewCounter()
-	metrics.Register("go-dnsmaq-nodata-responses", server.StatsCacheHit)
+	for k, v := range counters {
+		*v = metrics.NewCounter()
+		err := metrics.Register(k, *v)
+		if err != nil {
+			log.Errorf("Failed to register %s", k)
+		}
+		log.Debugf("Register counter %s", k)
+	}
 }
 
 func Collect() {

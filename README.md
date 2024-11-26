@@ -27,14 +27,18 @@ go-dnsmasq is a lightweight (1.2 MB) DNS caching server/forwarder with minimal f
 * Round-robin of DNS records
 * Send server metrics to Graphite and StatHat
 * Configuration through both command line flags and environment variables
+* Retain stale records. If TTL expires and all upstream servers are not available, then the state record will be served, if it not older than StaleTTL seconds
+* Only cache non negative. Allows only positive records to be stored in cache. A positive record is a record whose client returned with `state: NOERROR`
+* Use TTL from response. Allows to extract the lowest TTL from anwsers in response and use that value, for that record
 
 ### Resolve logic
 
 DNS queries are resolved in the style of the GNU libc resolver:
 * The first nameserver (as listed in resolv.conf or configured by `--nameservers`) is always queried first, additional servers are considered fallbacks
-* Multiple `search` domains are tried in the order they are configured. 
+* Multiple `search` domains are tried in the order they are configured.
 * Single-label queries (e.g.: "redis-service") are always qualified with the `search` domains
 * Multi-label queries (ndots >= 1) are first tried as absolute names before qualifying them with the `search` domains
+* Serve stale records if upstream is not available, if `rstale-ttl` is set to above 0
 
 ### Command-line options / environment variables
 
@@ -50,6 +54,10 @@ DNS queries are resolved in the style of the GNU libc resolver:
 | --enable-search, -search       | Qualify names with search domains to resolve queries                          | False         | $DNSMASQ_ENABLE_SEARCH      |
 | --rcache, -r                   | Capacity of the response cache (‘0‘ disables caching)                         | 0             | $DNSMASQ_RCACHE      |
 | --rcache-ttl                   | TTL for entries in the response cache                                         | 60            | $DNSMASQ_RCACHE_TTL  |
+| --rcache-ttl-from-resp         | Use TTL from response. If multiple anwsers, lowest value is used; `rcache-tll` and `rcache-tll-max` are used as min and max values                                         | False            | $GO_DNSMASQ_RSTALE_TTL_FROM_RESP  |
+| --rcache-ttl-max               | Used with `rcache-ttl-from-resp`. If ttl from response is higher than max, max is used                         | 3600         | $GO_DNSMASQ_RCACHE_TTL_MAX       |
+| --rstale-ttl                   | Stale retention in `seconds` for response cache entries. Stale retention keeps cache after regular TTL if name server are not reachable                        | 0         | $GO_DNSMASQ_RSTALE_TTL       |
+| --rcache-non-negative          | Cache only non negative responses                                             | False         | $GO_DNSMASQ_CACHE_NON_NEGATIVE       |
 | --no-rec                       | Disable forwarding of queries to upstream nameservers                         | False         | $DNSMASQ_NOREC       |
 | --fwd-ndots                    | Number of dots a name must have before the query is forwarded                 | 0 | $DNSMASQ_FWD_NDOTS   |
 | --ndots                        | Number of dots a name must have before making an initial absolute query (supersedes /etc/resolv.conf) | 1  | $DNSMASQ_NDOTS |
@@ -63,23 +71,23 @@ DNS queries are resolved in the style of the GNU libc resolver:
 
 #### Enable Graphite/StatHat metrics
 
-EnvVar: **GRAPHITE_SERVER**  
-Default: ` `  
+EnvVar: **GRAPHITE_SERVER**
+Default: ` `
 Set to the `host:port` of the Graphite server
 
-EnvVar: **GRAPHITE_PREFIX**  
-Default: `go-dnsmasq`  
+EnvVar: **GRAPHITE_PREFIX**
+Default: `go-dnsmasq`
 Set a custom prefix for Graphite metrics
 
-EnvVar: **STATHAT_USER**  
-Default: ` `  
+EnvVar: **STATHAT_USER**
+Default: ` `
 Set to your StatHat account email address
 
 ### Usage
 
 #### Run from the command line
 
-Download the binary for your OS from the [releases page](https://github.com/janeczku/go-dnsmasq/releases/latest).    
+Download the binary for your OS from the [releases page](https://github.com/janeczku/go-dnsmasq/releases/latest).
 
 go-dnsmasq is available in two versions. The minimal version (`go-dnsmasq-min`) has a lower memory footprint but doesn't have caching, stats reporting and systemd support.
 
@@ -87,15 +95,11 @@ go-dnsmasq is available in two versions. The minimal version (`go-dnsmasq-min`) 
    sudo ./go-dnsmasq [options]
 ```
 
-#### Run as a Docker container
+#### Get stats from local http
 
-Docker Hub trusted builds are [available](https://hub.docker.com/r/janeczku/go-dnsmasq/).
-
-```sh
-docker run -d -p 53:53/udp -p 53:53 janeczku/go-dnsmasq:latest
-```
-
-You can pass go-dnsmasq configuration parameters by setting the corresponding environmental variables with Docker's `-e` flag.
+- `curl -s http://127.0.0.1:8053/ping`: Ping, Pong
+- `curl -s http://127.0.0.1:8053/stats`: Get the current stats in JSON format. It is suitable to be requested continuously, as this operation should be cheap.
+- `curl -s http://127.0.0.1:8053/dump`: Get the current cache table alongside some statistic such as hits, stale hits, expiration times and question type. It is **not** suitable to be requested continuously, as this operation should be **expensive**.
 
 #### Serving A/AAAA records from a hosts file
 The `--hostsfile` parameter expects a standard plain text [hosts file](https://en.wikipedia.org/wiki/Hosts_(file)) with the only difference being that a wildcard `*` in the left-most label of hostnames is allowed. Wildcard entries will match any subdomain that is not explicitly defined.
@@ -107,3 +111,7 @@ For example, given a hosts file with the following content:
 ```
 
 Queries for `db2.db.local` would be answered with an A record pointing to 192.168.0.2, while queries for `db1.db.local` would yield an A record pointing to 192.168.0.1.
+
+### Acknowledgements
+
+- Initial implementation by [janeczku](http://github.com/janeczku)

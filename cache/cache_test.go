@@ -12,6 +12,7 @@ import (
 )
 
 const testTTL = 2
+const testStaleTTL = 4
 
 type testcase struct {
 	m           *dns.Msg
@@ -25,7 +26,7 @@ func newMsg(zone string, typ uint16) *dns.Msg {
 }
 
 func TestInsertMessage(t *testing.T) {
-	c := New(10, testTTL)
+	c := New(10, testTTL, testStaleTTL, false, 0)
 
 	testcases := []testcase{
 		{newMsg("miek.nl.", dns.TypeMX), false, false},
@@ -36,7 +37,7 @@ func TestInsertMessage(t *testing.T) {
 	for _, tc := range testcases {
 		c.InsertMessage(Key(tc.m.Question[0], tc.dnssec, tc.tcp), tc.m)
 
-		m1 := c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id)
+		m1 := c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id, false, false)
 		if m1.Question[0].Qtype != tc.m.Question[0].Qtype {
 			t.Fatalf("bad Qtype, expected %d, got %d:", tc.m.Question[0].Qtype, m1.Question[0].Qtype)
 		}
@@ -44,15 +45,15 @@ func TestInsertMessage(t *testing.T) {
 			t.Fatalf("bad Qtype, expected %s, got %s:", tc.m.Question[0].Name, m1.Question[0].Name)
 		}
 
-		m1 = c.Hit(tc.m.Question[0], !tc.dnssec, tc.tcp, tc.m.Id)
+		m1 = c.Hit(tc.m.Question[0], !tc.dnssec, tc.tcp, tc.m.Id, false, false)
 		if m1 != nil {
 			t.Fatalf("bad cache hit, expected <nil>, got %s:", m1)
 		}
-		m1 = c.Hit(tc.m.Question[0], !tc.dnssec, !tc.tcp, tc.m.Id)
+		m1 = c.Hit(tc.m.Question[0], !tc.dnssec, !tc.tcp, tc.m.Id, false, false)
 		if m1 != nil {
 			t.Fatalf("bad cache hit, expected <nil>, got %s:", m1)
 		}
-		m1 = c.Hit(tc.m.Question[0], tc.dnssec, !tc.tcp, tc.m.Id)
+		m1 = c.Hit(tc.m.Question[0], tc.dnssec, !tc.tcp, tc.m.Id, false, false)
 		if m1 != nil {
 			t.Fatalf("bad cache hit, expected <nil>, got %s:", m1)
 		}
@@ -60,12 +61,12 @@ func TestInsertMessage(t *testing.T) {
 }
 
 func TestExpireMessage(t *testing.T) {
-	c := New(10, testTTL-1)
+	c := New(10, testTTL-1, testStaleTTL-1, false, 0)
 
 	tc := testcase{newMsg("miek.nl.", dns.TypeMX), false, false}
 	c.InsertMessage(Key(tc.m.Question[0], tc.dnssec, tc.tcp), tc.m)
 
-	m1 := c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id)
+	m1 := c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id, false, false)
 	if m1.Question[0].Qtype != tc.m.Question[0].Qtype {
 		t.Fatalf("bad Qtype, expected %d, got %d:", tc.m.Question[0].Qtype, m1.Question[0].Qtype)
 	}
@@ -75,7 +76,7 @@ func TestExpireMessage(t *testing.T) {
 
 	time.Sleep(testTTL)
 
-	m1 = c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id)
+	m1 = c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id, false, false)
 	if m1.Question[0].Qtype != tc.m.Question[0].Qtype {
 		t.Fatalf("bad Qtype, expected %d, got %d:", tc.m.Question[0].Qtype, m1.Question[0].Qtype)
 	}

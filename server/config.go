@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/miekg/dns"
 )
@@ -46,6 +46,14 @@ type Config struct {
 	RCache int `json:"rcache,omitempty"`
 	// RCacheTtl, how long to cache in seconds.
 	RCacheTtl int `json:"rcache_ttl,omitempty"`
+	// RStaleTtl, how long to retain stale cache in seconds.
+	RStaleTtl int `json:"rstale_ttl,omitempty"`
+	// RCacheTtlFromResp, use lowet TTL read from response, superseeds rcache
+	RCacheTtlFromResp bool `json:"rcache_ttl_from_resp,omitempty"`
+	// RCacheTtlMax, max TTL to be used with rcache_ttl_from_resp
+	RCacheTtlMax int `json:"rcache_ttl_max,omitempty"`
+	// RCacheNonNegative, Cache negative responses.
+	RCacheNonNegative bool `json:"cache_non_negative,omitempty"`
 	// How many dots a name must have before we allow to forward the query as-is. Defaults to 1.
 	FwdNdots int `json:"fwd_ndots,omitempty"`
 	// How many dots a name must have before we do an initial absolute query. Defaults to 1.
@@ -102,6 +110,12 @@ func CheckConfig(config *Config) error {
 	if config.RCacheTtl <= 0 {
 		return fmt.Errorf("'rcache-ttl' must be greater than 0")
 	}
+	if config.RStaleTtl < 0 {
+		return fmt.Errorf("'rstale-ttl' must be equal or greater than 0")
+	}
+	if config.RCacheTtlMax < 0 {
+		return fmt.Errorf("'rcache-ttl-max' must be equal or greater than 0")
+	}
 	if config.Ndots <= 0 {
 		return fmt.Errorf("'ndots' must be greater than 0")
 	}
@@ -120,7 +134,7 @@ func CheckConfig(config *Config) error {
 
 func appendDomain(s1, s2 string) string {
 	if len(s2) > 0 && strings.HasPrefix(s2, ".") {
-		strings.TrimLeft(s2, ".")
+		s2 = strings.TrimLeft(s2, ".")
 	}
 	return dns.Fqdn(s1) + dns.Fqdn(s2)
 }

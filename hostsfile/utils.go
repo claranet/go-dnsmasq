@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type hostlist []*hostname
@@ -56,8 +56,7 @@ func (h *hostname) Equal(hostnamev *hostname) bool {
 
 // return first match
 func (h *hostlist) FindHost(name string) (addr net.IP) {
-	var ips []net.IP;
-	ips = h.FindHosts(name)
+	ips := h.FindHosts(name)
 	if len(ips) > 0 {
 		addr = ips[0];
 	}
@@ -67,7 +66,7 @@ func (h *hostlist) FindHost(name string) (addr net.IP) {
 // return exact matches, if existing -> else, return wildcard
 func (h *hostlist) FindHosts(name string) (addrs []net.IP) {
 	for _, hostname := range *h {
-		if hostname.wildcard == false && hostname.domain == name {
+		if !hostname.wildcard && hostname.domain == name {
 			addrs = append(addrs, hostname.ip)
 		}
 	}
@@ -75,11 +74,10 @@ func (h *hostlist) FindHosts(name string) (addrs []net.IP) {
 	if len(addrs) == 0 {
 		var domain_match string;
 		for _, hostname := range *h {
-			if hostname.wildcard == true && len(hostname.domain) < len(name) {
+			if hostname.wildcard && len(hostname.domain) < len(name) {
 				domain_match = strings.Join([]string{".", hostname.domain}, "");
 				if name[len(name)-len(domain_match):] == domain_match {
-					var left string;
-					left = name[0:len(name)-len(domain_match)]
+					left := name[0:len(name)-len(domain_match)]
 					if !strings.Contains(left, ".") {
 						addrs = append(addrs, hostname.ip)
 					}
