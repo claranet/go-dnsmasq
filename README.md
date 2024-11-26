@@ -5,7 +5,7 @@
 
 [release]: https://github.com/claranet/go-dnsmasq/releases
 
-go-dnsmasq is a lightweight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead.
+go-dnsmasq is a lightweight DNS caching server/forwarder with minimal filesystem and runtime overhead.
 
 ### Application examples:
 
