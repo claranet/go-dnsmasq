@@ -15,72 +15,130 @@ const testTTL = 2
 const testStaleTTL = 4
 
 type testcase struct {
-	m           *dns.Msg
+	msg         *dns.Msg
 	dnssec, tcp bool
 }
 
 func newMsg(zone string, typ uint16) *dns.Msg {
-	m := &dns.Msg{}
-	m.SetQuestion(zone, typ)
-	return m
+	msg := &dns.Msg{}
+	msg.SetQuestion(zone, typ)
+	return msg
 }
 
 func TestInsertMessage(t *testing.T) {
-	c := New(10, testTTL, testStaleTTL, false, 0)
+	cch := New(10, testTTL, testStaleTTL, false, 0)
 
 	testcases := []testcase{
-		{newMsg("miek.nl.", dns.TypeMX), false, false},
-		{newMsg("miek2.nl.", dns.TypeNS), false, false},
-		{newMsg("miek3.nl.", dns.TypeMX), true, false},
+		{newMsg("example.com.", dns.TypeA), false, false},
+		{newMsg("example.net.", dns.TypeAAAA), false, false},
+		{newMsg("example.org.", dns.TypeCNAME), true, false},
+		{newMsg("example.com.", dns.TypeMX), true, false},
+		{newMsg("example.net.", dns.TypeNS), true, false},
+		{newMsg("example.org.", dns.TypeTXT), true, false},
+		{newMsg("example.com.", dns.TypeSOA), true, false},
 	}
 
 	for _, tc := range testcases {
-		c.InsertMessage(Key(tc.m.Question[0], tc.dnssec, tc.tcp), tc.m)
+		cch.InsertMessage(Key(tc.msg.Question[0], tc.dnssec, tc.tcp), tc.msg)
 
-		m1 := c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id, false, false)
-		if m1.Question[0].Qtype != tc.m.Question[0].Qtype {
-			t.Fatalf("bad Qtype, expected %d, got %d:", tc.m.Question[0].Qtype, m1.Question[0].Qtype)
+		cMsg := cch.Hit(tc.msg.Question[0], tc.dnssec, tc.tcp, tc.msg.Id, false, false)
+
+		if cMsg.Question[0].Qtype != tc.msg.Question[0].Qtype {
+			t.Fatalf("bad Qtype, expected %d, got %d:", tc.msg.Question[0].Qtype, cMsg.Question[0].Qtype)
 		}
-		if m1.Question[0].Name != tc.m.Question[0].Name {
-			t.Fatalf("bad Qtype, expected %s, got %s:", tc.m.Question[0].Name, m1.Question[0].Name)
+		if cMsg.Question[0].Name != tc.msg.Question[0].Name {
+			t.Fatalf("bad Qtype, expected %s, got %s:", tc.msg.Question[0].Name, cMsg.Question[0].Name)
 		}
 
-		m1 = c.Hit(tc.m.Question[0], !tc.dnssec, tc.tcp, tc.m.Id, false, false)
-		if m1 != nil {
-			t.Fatalf("bad cache hit, expected <nil>, got %s:", m1)
+		cMsg = cch.Hit(tc.msg.Question[0], !tc.dnssec, tc.tcp, tc.msg.Id, false, false)
+		if cMsg != nil {
+			t.Fatalf("bad cache hit, expected <nil>, got %s:", cMsg)
 		}
-		m1 = c.Hit(tc.m.Question[0], !tc.dnssec, !tc.tcp, tc.m.Id, false, false)
-		if m1 != nil {
-			t.Fatalf("bad cache hit, expected <nil>, got %s:", m1)
+		cMsg = cch.Hit(tc.msg.Question[0], !tc.dnssec, !tc.tcp, tc.msg.Id, false, false)
+		if cMsg != nil {
+			t.Fatalf("bad cache hit, expected <nil>, got %s:", cMsg)
 		}
-		m1 = c.Hit(tc.m.Question[0], tc.dnssec, !tc.tcp, tc.m.Id, false, false)
-		if m1 != nil {
-			t.Fatalf("bad cache hit, expected <nil>, got %s:", m1)
+		cMsg = cch.Hit(tc.msg.Question[0], tc.dnssec, !tc.tcp, tc.msg.Id, false, false)
+		if cMsg != nil {
+			t.Fatalf("bad cache hit, expected <nil>, got %s:", cMsg)
 		}
 	}
 }
 
 func TestExpireMessage(t *testing.T) {
-	c := New(10, testTTL-1, testStaleTTL-1, false, 0)
+	cch := New(10, testTTL-1, testStaleTTL-1, false, 0)
 
-	tc := testcase{newMsg("miek.nl.", dns.TypeMX), false, false}
-	c.InsertMessage(Key(tc.m.Question[0], tc.dnssec, tc.tcp), tc.m)
+	testcases := testcase{newMsg("example.com.", dns.TypeA), false, false}
 
-	m1 := c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id, false, false)
-	if m1.Question[0].Qtype != tc.m.Question[0].Qtype {
-		t.Fatalf("bad Qtype, expected %d, got %d:", tc.m.Question[0].Qtype, m1.Question[0].Qtype)
+	cch.InsertMessage(Key(testcases.msg.Question[0], testcases.dnssec, testcases.tcp), testcases.msg)
+
+	cMsg := cch.Hit(testcases.msg.Question[0], testcases.dnssec, testcases.tcp, testcases.msg.Id, false, false)
+	if cMsg.Question[0].Qtype != testcases.msg.Question[0].Qtype {
+		t.Fatalf("bad Qtype, expected %d, got %d:", testcases.msg.Question[0].Qtype, cMsg.Question[0].Qtype)
 	}
-	if m1.Question[0].Name != tc.m.Question[0].Name {
-		t.Fatalf("bad Qtype, expected %s, got %s:", tc.m.Question[0].Name, m1.Question[0].Name)
+	if cMsg.Question[0].Name != testcases.msg.Question[0].Name {
+		t.Fatalf("bad Qtype, expected %s, got %s:", testcases.msg.Question[0].Name, cMsg.Question[0].Name)
 	}
 
-	time.Sleep(testTTL)
+	time.Sleep(testTTL * time.Second)
 
-	m1 = c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id, false, false)
-	if m1.Question[0].Qtype != tc.m.Question[0].Qtype {
-		t.Fatalf("bad Qtype, expected %d, got %d:", tc.m.Question[0].Qtype, m1.Question[0].Qtype)
+	cMsg = cch.Hit(testcases.msg.Question[0], testcases.dnssec, testcases.tcp, testcases.msg.Id, false, false)
+
+	if cMsg != nil {
+		t.Fatalf("expected nil message from expired cache, got %v", cMsg.Answer)
 	}
-	if m1.Question[0].Name != tc.m.Question[0].Name {
-		t.Fatalf("bad Qtype, expected %s, got %s:", tc.m.Question[0].Name, m1.Question[0].Name)
+
+}
+
+func TestExpireMessageWithStale(t *testing.T) {
+	cch := New(10, testTTL-1, testStaleTTL-1, false, 0)
+
+	testcases := testcase{newMsg("example.com.", dns.TypeA), false, false}
+
+	cch.InsertMessage(Key(testcases.msg.Question[0], testcases.dnssec, testcases.tcp), testcases.msg)
+
+	cMsg := cch.Hit(testcases.msg.Question[0], testcases.dnssec, testcases.tcp, testcases.msg.Id, true, true)
+	if cMsg.Question[0].Qtype != testcases.msg.Question[0].Qtype {
+		t.Fatalf("bad Qtype, expected %d, got %d:", testcases.msg.Question[0].Qtype, cMsg.Question[0].Qtype)
 	}
+	if cMsg.Question[0].Name != testcases.msg.Question[0].Name {
+		t.Fatalf("bad Qtype, expected %s, got %s:", testcases.msg.Question[0].Name, cMsg.Question[0].Name)
+	}
+
+	time.Sleep(testTTL * time.Second)
+
+	cMsg = cch.Hit(testcases.msg.Question[0], testcases.dnssec, testcases.tcp, testcases.msg.Id, true, true)
+
+	if cMsg == nil {
+		t.Fatal("expected stale message from expired cache, got nil")
+	}
+
+}
+
+func TestExpireMessageWithExpiredStale(t *testing.T) {
+	cch := New(10, testTTL-1, testStaleTTL-1, false, 0)
+
+	testcases := testcase{newMsg("example.com.", dns.TypeA), false, false}
+
+	cch.InsertMessage(Key(testcases.msg.Question[0], testcases.dnssec, testcases.tcp), testcases.msg)
+
+	cMsg := cch.Hit(testcases.msg.Question[0], testcases.dnssec, testcases.tcp, testcases.msg.Id, true, true)
+	if cMsg.Question[0].Qtype != testcases.msg.Question[0].Qtype {
+		t.Fatalf("bad Qtype, expected %d, got %d:", testcases.msg.Question[0].Qtype, cMsg.Question[0].Qtype)
+	}
+	if cMsg.Question[0].Name != testcases.msg.Question[0].Name {
+		t.Fatalf("bad Qtype, expected %s, got %s:", testcases.msg.Question[0].Name, cMsg.Question[0].Name)
+	}
+
+	time.Sleep(testStaleTTL * time.Second)
+
+	// Call twice because stale feature returns the message one last time after it is stale expired,
+	// only removing it after
+	_ = cch.Hit(testcases.msg.Question[0], testcases.dnssec, testcases.tcp, testcases.msg.Id, false, true)
+	cMsg = cch.Hit(testcases.msg.Question[0], testcases.dnssec, testcases.tcp, testcases.msg.Id, false, true)
+
+	if cMsg != nil {
+		t.Fatalf("expected nil message from stale expired cache, got %v", cMsg)
+	}
+
 }
