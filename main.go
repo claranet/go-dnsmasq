@@ -18,10 +18,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
+	"github.com/urfave/cli"
 
 	"github.com/claranet/go-dnsmasq/control"
 	"github.com/claranet/go-dnsmasq/hostsfile"
