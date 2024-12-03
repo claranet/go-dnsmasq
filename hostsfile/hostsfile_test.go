@@ -6,7 +6,6 @@ import (
 	"testing"
 )
 
-
 const domain = "localhost"
 const ip = "127.0.0.1"
 const ipv6 = false
@@ -35,30 +34,30 @@ func TestEquality(t *testing.T) {
 	var host1 *hostname
 	var host2 *hostname
 
-	host1 = newHostname("hello", net.ParseIP("255.255.255.255"), false, false);
-	host2 = newHostname("hello", net.ParseIP("255.255.255.255"), false, false);
+	host1 = newHostname("hello", net.ParseIP("255.255.255.255"), false, false)
+	host2 = newHostname("hello", net.ParseIP("255.255.255.255"), false, false)
 	if !host1.Equal(host2) {
-		t.Error("Hosts are expected equal, got: ", host1, host2);
+		t.Error("Hosts are expected equal, got: ", host1, host2)
 	}
 
-	host2 = newHostname("hello2", net.ParseIP("255.255.255.255"), false, false);
+	host2 = newHostname("hello2", net.ParseIP("255.255.255.255"), false, false)
 	if host1.Equal(host2) {
-		t.Error("Hosts are expected different, got: ", host1, host2);
+		t.Error("Hosts are expected different, got: ", host1, host2)
 	}
 
-	host2 = newHostname("hello1", net.ParseIP("255.255.255.254"), false, false);
+	host2 = newHostname("hello1", net.ParseIP("255.255.255.254"), false, false)
 	if host1.Equal(host2) {
-		t.Error("Hosts are expected different, got: ", host1, host2);
+		t.Error("Hosts are expected different, got: ", host1, host2)
 	}
 
-	host2 = newHostname("hello1", net.ParseIP("255.255.255.255"), true, false);
+	host2 = newHostname("hello1", net.ParseIP("255.255.255.255"), true, false)
 	if host1.Equal(host2) {
-		t.Error("Hosts are expected different, got: ", host1, host2);
+		t.Error("Hosts are expected different, got: ", host1, host2)
 	}
 
-	host2 = newHostname("hello1", net.ParseIP("255.255.255.255"), false, true);
+	host2 = newHostname("hello1", net.ParseIP("255.255.255.255"), false, true)
 	if host1.Equal(host2) {
-		t.Error("Hosts are expected different, got: ", host1, host2);
+		t.Error("Hosts are expected different, got: ", host1, host2)
 	}
 
 }
@@ -89,14 +88,14 @@ func TestParseLine(t *testing.T) {
 		t.Error("Expected to find zero hostnames when line is commented out")
 	}
 
-	var err error;
-	err = hosts.add(newHostname("aaa", net.ParseIP("192.168.0.1"), false, false));
+	var err error
+	err = hosts.add(newHostname("aaa", net.ParseIP("192.168.0.1"), false, false))
 	if err != nil {
-		t.Error("Did not expect error on first hostname");
+		t.Error("Did not expect error on first hostname")
 	}
-	err = hosts.add(newHostname("aaa", net.ParseIP("192.168.0.1"), false, false));
+	err = hosts.add(newHostname("aaa", net.ParseIP("192.168.0.1"), false, false))
 	if err == nil {
-		t.Error("Expected error on duplicate host");
+		t.Error("Expected error on duplicate host")
 	}
 
 	// Not Commented stuff
@@ -117,32 +116,32 @@ func TestParseLine(t *testing.T) {
 		t.Error("Expected to find *.domain.com, mail.domain.com and serenity.")
 	}
 
-	var ip net.IP;
+	var ip net.IP
 
-	ip = hosts.FindHost("api.domain.com");
+	ip = hosts.FindHost("api.domain.com")
 	if !net.ParseIP("192.168.0.1").Equal(ip) {
-		t.Error("Can't match wildcard host api.domain.com");
+		t.Error("Can't match wildcard host api.domain.com")
 	}
 
 	ip = hosts.FindHost("google.com")
 	if ip != nil {
-		t.Error("We shouldn't resolve google.com");
+		t.Error("We shouldn't resolve google.com")
 	}
 
 	hosts = *newHostlistString(`192.168.0.1 *.domain.com mail.domain.com serenity
-				192.168.0.2	api.domain.com`);
+				192.168.0.2	api.domain.com`)
 
-	if (!net.ParseIP("192.168.0.2").Equal(hosts.FindHost("api.domain.com"))) {
-		t.Error("Failed matching api.domain.com explicitly");
+	if !net.ParseIP("192.168.0.2").Equal(hosts.FindHost("api.domain.com")) {
+		t.Error("Failed matching api.domain.com explicitly")
 	}
-	if (!net.ParseIP("192.168.0.1").Equal(hosts.FindHost("mail.domain.com"))) {
-		t.Error("Failed matching api.domain.com explicitly");
+	if !net.ParseIP("192.168.0.1").Equal(hosts.FindHost("mail.domain.com")) {
+		t.Error("Failed matching api.domain.com explicitly")
 	}
-	if (!net.ParseIP("192.168.0.1").Equal(hosts.FindHost("wildcard.domain.com"))) {
-		t.Error("Failed matching wildcard.domain.com explicitly");
+	if !net.ParseIP("192.168.0.1").Equal(hosts.FindHost("wildcard.domain.com")) {
+		t.Error("Failed matching wildcard.domain.com explicitly")
 	}
-	if (net.ParseIP("192.168.0.1").Equal(hosts.FindHost("sub.wildcard.domain.com"))) {
-		t.Error("Failed not matching sub.wildcard.domain.com explicitly");
+	if net.ParseIP("192.168.0.1").Equal(hosts.FindHost("sub.wildcard.domain.com")) {
+		t.Error("Failed not matching sub.wildcard.domain.com explicitly")
 	}
 
 	// IPv6 (not link-local)

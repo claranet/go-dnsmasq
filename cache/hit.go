@@ -18,7 +18,7 @@ func (c *Cache) Hit(question dns.Question, dnssec, tcp bool, msgid uint16, keepS
 	valid := time.Since(exp) < 0
 	if hit {
 		// Cache hit! \o/
-		if valid || returnStale{
+		if valid || returnStale {
 			m1.Id = msgid
 			m1.Compress = true
 			// Even if something ended up with the TC bit *in* the cache, set it to off

@@ -1,4 +1,4 @@
- // Copyright (c) 2015 Jan Broer. All rights reserved.
+// Copyright (c) 2015 Jan Broer. All rights reserved.
 // Use of this source code is governed by The MIT License (MIT) that can be
 // found in the LICENSE file.
 
@@ -8,14 +8,14 @@
 package hosts
 
 import (
-	"os"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
 )
 
 // Config stores options for hostsfile

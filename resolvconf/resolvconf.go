@@ -9,8 +9,8 @@ package resolvconf
 
 import (
 	"fmt"
-	"os"
 	"io"
+	"os"
 	"regexp"
 	"strings"
 

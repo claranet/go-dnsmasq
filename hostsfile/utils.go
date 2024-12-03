@@ -27,7 +27,7 @@ type hostname struct {
 
 // newHostlist creates a hostlist by parsing a file
 func newHostlist(data []byte) *hostlist {
-	return newHostlistString(string(data));
+	return newHostlistString(string(data))
 }
 
 func newHostlistString(data string) *hostlist {
@@ -44,13 +44,13 @@ func newHostlistString(data string) *hostlist {
 }
 
 func (h *hostname) Equal(hostnamev *hostname) bool {
-	if (h.wildcard != hostnamev.wildcard || h.ipv6 != hostnamev.ipv6) {
+	if h.wildcard != hostnamev.wildcard || h.ipv6 != hostnamev.ipv6 {
 		return false
 	}
-	if (!h.ip.Equal(hostnamev.ip)) {
+	if !h.ip.Equal(hostnamev.ip) {
 		return false
 	}
-	if (h.domain != hostnamev.domain) {
+	if h.domain != hostnamev.domain {
 		return false
 	}
 	return true
@@ -60,7 +60,7 @@ func (h *hostname) Equal(hostnamev *hostname) bool {
 func (h *hostlist) FindHost(name string) (addr net.IP) {
 	ips := h.FindHosts(name)
 	if len(ips) > 0 {
-		addr = ips[0];
+		addr = ips[0]
 	}
 	return
 }
@@ -74,12 +74,12 @@ func (h *hostlist) FindHosts(name string) (addrs []net.IP) {
 	}
 
 	if len(addrs) == 0 {
-		var domain_match string;
+		var domain_match string
 		for _, hostname := range *h {
 			if hostname.wildcard && len(hostname.domain) < len(name) {
-				domain_match = strings.Join([]string{".", hostname.domain}, "");
+				domain_match = strings.Join([]string{".", hostname.domain}, "")
 				if name[len(name)-len(domain_match):] == domain_match {
-					left := name[0:len(name)-len(domain_match)]
+					left := name[0 : len(name)-len(domain_match)]
 					if !strings.Contains(left, ".") {
 						addrs = append(addrs, hostname.ip)
 					}
