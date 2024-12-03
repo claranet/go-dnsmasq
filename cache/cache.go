@@ -11,13 +11,13 @@ package cache
 
 import (
 	"crypto/sha1"
-	"sync"
-	"time"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
-	"slices"
+	"sync"
 	"text/tabwriter"
+	"time"
 
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
@@ -26,12 +26,12 @@ import (
 // Elem hold an answer and additional section that returned from the cache.
 // The signature is put in answer, extra is empty there. This wastes some memory.
 type elem struct {
-	expiration time.Time // time added + TTL, after this the elem is invalid
-	msg        *dns.Msg
+	expiration      time.Time // time added + TTL, after this the elem is invalid
+	msg             *dns.Msg
 	staleExpiration time.Time
-	hits uint
-	staleHits uint
-	ttlSeconds uint32
+	hits            uint
+	staleHits       uint
+	ttlSeconds      uint32
 }
 
 // Cache is a cache that holds on the a number of RRs or DNS messages. The cache
@@ -39,24 +39,24 @@ type elem struct {
 type Cache struct {
 	sync.RWMutex
 
-	capacity int
-	m        map[string]*elem
-	ttl      time.Duration
+	capacity      int
+	m             map[string]*elem
+	ttl           time.Duration
 	staleTtl      time.Duration
-	ttlFromResp bool
-	ttlMax      time.Duration
+	ttlFromResp   bool
+	ttlMax        time.Duration
 	ttlMinSeconds uint32
 	ttlMaxSeconds uint32
 }
 
 var qTypeToName = map[uint16]string{
-	1: "A",
+	1:  "A",
 	28: "AAAA",
-	5: "CNAME",
+	5:  "CNAME",
 	15: "MX",
-	2: "NS",
+	2:  "NS",
 	16: "TXT",
-	6: "SOA",
+	6:  "SOA",
 }
 
 func getRecordTypeName(qType uint16) string {
@@ -144,11 +144,11 @@ func (c *Cache) evictRandomInternal(onlyStale bool) {
 				stale := time.Since(c.m[k].staleExpiration) > 0
 				if stale {
 					delete(c.m, k)
-					log.Infof("Evicted stale record")
+					log.Debug("Evicted stale record")
 				}
 			} else {
 				delete(c.m, k)
-				log.Infof("Evicted record")
+				log.Debug("Evicted record")
 			}
 		}
 		i--
@@ -158,7 +158,7 @@ func (c *Cache) evictRandomInternal(onlyStale bool) {
 // EvictRandom removes a random member a the cache.
 // Must be called under a write lock.
 func (c *Cache) EvictRandom() {
-	c.evictRandomInternal(true) // First evict only stale records
+	c.evictRandomInternal(true)  // First evict only stale records
 	c.evictRandomInternal(false) // Then the rest. Should only loop if capacity still bigger than set
 }
 
@@ -181,7 +181,7 @@ func (c *Cache) InsertMessage(s string, msg *dns.Msg) {
 		if c.ttlFromResp {
 			lowestTll := getLowestTtl(msg, c.ttlMinSeconds, c.ttlMaxSeconds)
 			log.Debugf("Found lowest ttl: %d\n", lowestTll)
-			ttlD :=  time.Duration(lowestTll) * time.Second
+			ttlD := time.Duration(lowestTll) * time.Second
 			exp = time.Now().UTC().Add(ttlD)
 			ttlSeconds = lowestTll
 		}
@@ -190,7 +190,7 @@ func (c *Cache) InsertMessage(s string, msg *dns.Msg) {
 		if renew {
 			logMsg = fmt.Sprintf("Renew entry: %v", msg.Answer)
 		}
-		log.Info(logMsg)
+		log.Debug(logMsg)
 
 	}
 	c.EvictRandom()
@@ -258,7 +258,7 @@ func KeyRRset(rrs []dns.RR) string {
 
 // return the lowest ttl from all the records in message
 func getLowestTtl(r *dns.Msg, min uint32, max uint32) uint32 {
-	var ttls[] uint32
+	var ttls []uint32
 	for _, m := range r.Answer {
 		ttls = append(ttls, m.Header().Ttl)
 	}

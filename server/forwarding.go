@@ -9,15 +9,16 @@ package server
 import (
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
 )
 
 // ServeDNSForward resolves a query by forwarding to a recursive nameserver
-//  Returns: msg, servedStale true|false
+//
+//	Returns: msg, servedStale true|false
 func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg, staleRes *dns.Msg) (*dns.Msg, bool) {
 	name := req.Question[0].Name
-	nameDots := dns.CountLabel(name)-1
+	nameDots := dns.CountLabel(name) - 1
 	refuse := false
 
 	switch {
@@ -41,9 +42,9 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg, staleRes *d
 
 	StatsForwardCount.Inc(1)
 
-    var searchEnabled, didAbsolute, didSearch bool
+	var searchEnabled, didAbsolute, didSearch bool
 	var absoluteRes, searchRes *dns.Msg // responses from absolute/search lookups
-	var absoluteErr, searchErr error // errors from absolute/search lookups
+	var absoluteErr, searchErr error    // errors from absolute/search lookups
 
 	tcp := isTCP(w)
 
@@ -125,12 +126,12 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg, staleRes *d
 	// a no-data response with the rcode from the last search we did.
 	if didAbsolute && absoluteErr == nil {
 		log.Debugf("[%d] Failed to resolve query. Returning response of absolute lookup: %s",
-					req.Id, dns.RcodeToString[absoluteRes.Rcode])
+			req.Id, dns.RcodeToString[absoluteRes.Rcode])
 		absoluteRes.Compress = true
 		absoluteRes.Id = req.Id
 		if staleRes != nil { // If stale response available, use it
 			absoluteRes = staleRes
-			log.Infof("[%d] Stale cache record available, serving it instead", req.Id)
+			log.Debugf("[%d] Stale cache record available, serving it instead", req.Id)
 			StatsStaleCacheHit.Inc(1)
 		} else {
 			StatsRequestFail.Inc(1)
@@ -140,13 +141,13 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg, staleRes *d
 	}
 
 	if didSearch && searchErr == nil {
-		log.Infof("[%d] Failed to resolve query. Returning no-data response: %s",
-					req.Id, dns.RcodeToString[searchRes.Rcode])
+		log.Debugf("[%d] Failed to resolve query. Returning no-data response: %s",
+			req.Id, dns.RcodeToString[searchRes.Rcode])
 		m := new(dns.Msg)
 		m.SetRcode(req, searchRes.Rcode)
 		if staleRes != nil { // If stale response available, use it
 			m = staleRes
-			log.Infof("[%d] Stale cache record available, serving it instead", req.Id)
+			log.Debugf("[%d] Stale cache record available, serving it instead", req.Id)
 			StatsStaleCacheHit.Inc(1)
 		} else {
 			StatsRequestFail.Inc(1)
@@ -175,7 +176,7 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg, staleRes *d
 // forwardSearch resolves a query by suffixing with search paths
 func (s *server) forwardSearch(req *dns.Msg, tcp bool) (*dns.Msg, error) {
 	var r *dns.Msg
-	var nodata *dns.Msg // stores the copy of a NODATA reply
+	var nodata *dns.Msg   // stores the copy of a NODATA reply
 	var searchName string // stores the current name suffixed with search domain
 	var err error
 	var didSearch bool
@@ -196,7 +197,9 @@ func (s *server) forwardSearch(req *dns.Msg, tcp bool) (*dns.Msg, error) {
 			break
 		}
 
-		if r.Rcode == dns.RcodeNameError { StatsNameErrorCount.Inc(1) }
+		if r.Rcode == dns.RcodeNameError {
+			StatsNameErrorCount.Inc(1)
+		}
 		switch r.Rcode {
 		case dns.RcodeSuccess:
 			// In case of NO_DATA keep searching, otherwise a wildcard entry
@@ -234,7 +237,7 @@ func (s *server) forwardSearch(req *dns.Msg, tcp bool) (*dns.Msg, error) {
 				answers = append(answers, r.Answer...)
 				r.Answer = answers
 			}
-		// If we ever got a NODATA, return this instead of a negative result
+			// If we ever got a NODATA, return this instead of a negative result
 		} else if nodata != nil {
 			r = nodata
 		}
@@ -281,7 +284,9 @@ func (s *server) forwardQuery(req *dns.Msg, tcp bool) (*dns.Msg, error) {
 
 		if err == nil {
 			log.Debugf("[%d] Response code from upstream: %s", req.Id, dns.RcodeToString[r.Rcode])
-			if r.Rcode == dns.RcodeNameError { StatsNameErrorCount.Inc(1) }
+			if r.Rcode == dns.RcodeNameError {
+				StatsNameErrorCount.Inc(1)
+			}
 			switch r.Rcode {
 			// SUCCESS
 			case dns.RcodeSuccess:
