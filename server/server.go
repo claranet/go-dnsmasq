@@ -14,10 +14,10 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-	"github.com/coreos/go-systemd/activation"
 	"github.com/claranet/go-dnsmasq/cache"
+	"github.com/coreos/go-systemd/activation"
 	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
 )
 
 type server struct {
@@ -38,12 +38,6 @@ type Hostfile interface {
 
 // New returns a new server.
 func New(hostfile Hostfile, config *Config, v string) *server {
-	// log.Debugf("%v", config.RCache)
-	// log.Debugf("%v", config.RCacheTtl)
-	// log.Debugf("%v", config.RStaleTtl)
-	// log.Debugf("%v", config.RCacheTtlFromResp)
-	// log.Debugf("%v", config.RCacheTtlMax)
-	// log.Debugf("%v", config.RCacheNonNegative)
 	return &server{
 		hosts:   hostfile,
 		config:  config,
@@ -185,19 +179,19 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		StatsDnssecOkCount.Inc(1)
 	}
 
-	log.Infof("[%d] Got query for '%s %s' from %s", req.Id, dns.TypeToString[q.Qtype], q.Name, w.RemoteAddr().String())
+	log.Debugf("[%d] Got query for '%s %s' from %s", req.Id, dns.TypeToString[q.Qtype], q.Name, w.RemoteAddr().String())
 
 	// Check cache first (`false`in the end means serve NO stale).
 	m1 := s.rcache.Hit(q, dnssec, tcp, m.Id, s.config.RStaleTtl > 0, false)
 	if m1 != nil {
-		log.Infof("[%d] Found cached response for this query", req.Id)
+		log.Debugf("[%d] Found cached response for this query", req.Id)
 		if tcp {
 			if _, overflow := Fit(m1, dns.MaxMsgSize, tcp); overflow {
 				msgFail := new(dns.Msg)
 				s.ServerFailure(msgFail, req)
 				err := w.WriteMsg(msgFail)
 				if err != nil {
-					log.Error("Write response fail")
+					log.Errorf("Write response fail: %v", err)
 				}
 				return
 			}
@@ -402,4 +396,3 @@ func isTCP(w dns.ResponseWriter) bool {
 	_, ok := w.RemoteAddr().(*net.TCPAddr)
 	return ok
 }
-
