@@ -275,32 +275,23 @@ func (s *server) forwardQuery(req *dns.Msg, tcp bool) (*dns.Msg, error) {
 		log.Debugf("[%d] Querying upstream %s for qname '%s'",
 			req.Id, nservers[nsIdx], req.Question[0].Name)
 
-		switch tcp {
-		case false:
-			r, _, err = s.dnsUDPclient.Exchange(req, nservers[nsIdx])
-		case true:
+		if tcp {
 			r, _, err = s.dnsTCPclient.Exchange(req, nservers[nsIdx])
+		} else {
+			r, _, err = s.dnsUDPclient.Exchange(req, nservers[nsIdx])
 		}
 
 		if err == nil {
-			log.Debugf("[%d] Response code from upstream: %s", req.Id, dns.RcodeToString[r.Rcode])
+			// Message response codes: https://github.com/miekg/dns/blob/master/types.go#L127
+			log.Debugf("[%d] Response code from upstream %s: %s", req.Id, nservers[nsIdx], dns.RcodeToString[r.Rcode])
 			if r.Rcode == dns.RcodeNameError {
 				StatsNameErrorCount.Inc(1)
 			}
-			switch r.Rcode {
-			// SUCCESS
-			case dns.RcodeSuccess:
-				fallthrough
-			case dns.RcodeNameError:
-				fallthrough
-			// NO RECOVERY
-			case dns.RcodeFormatError:
-				fallthrough
-			case dns.RcodeRefused:
-				fallthrough
-			case dns.RcodeNotImplemented:
-				return r, err
+			if s.config.RCacheNonNegative && r.Rcode != dns.RcodeSuccess {
+				log.Debugf("[%d] Trying another server if available", req.Id)
+				continue
 			}
+			return r, err
 		}
 
 		if err != nil {
