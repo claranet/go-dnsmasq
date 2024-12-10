@@ -1,6 +1,6 @@
 BINARY_SUFFIX=
 BINARY=go-dnsmasq${BINARY_SUFFIX}
-VERSION=1.2.1
+VERSION=1.2.2
 B_LDFLAGS=-X main.Version=${VERSION}
 R_LDFLAGS=-w -s -X main.Version=${VERSION}
 TEST=$$(go list ./... | grep -v 'vendor')

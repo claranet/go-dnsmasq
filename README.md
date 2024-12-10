@@ -55,7 +55,7 @@ DNS queries are resolved in the style of the GNU libc resolver:
 | --rcache-ttl-from-resp         | Use TTL from response. If multiple anwsers, lowest value is used; `rcache-tll` and `rcache-tll-max` are used as min and max values                                         | False            | $GO_DNSMASQ_RSTALE_TTL_FROM_RESP  |
 | --rcache-ttl-max               | Used with `rcache-ttl-from-resp`. If ttl from response is higher than max, max is used                         | 3600         | $GO_DNSMASQ_RCACHE_TTL_MAX       |
 | --rstale-ttl                   | Stale retention in `seconds` for response cache entries. Stale retention keeps cache after regular TTL if name server are not reachable                        | 0         | $GO_DNSMASQ_RSTALE_TTL       |
-| --rcache-non-negative          | Cache only non negative responses                                             | False         | $GO_DNSMASQ_CACHE_NON_NEGATIVE       |
+| --rcache-non-negative          | Cache only non negative responses and try other upstream servers if status is **not** `NOERROR`                                             | False         | $GO_DNSMASQ_CACHE_NON_NEGATIVE       |
 | --no-rec                       | Disable forwarding of queries to upstream nameservers                         | False         | $DNSMASQ_NOREC       |
 | --fwd-ndots                    | Number of dots a name must have before the query is forwarded                 | 0 | $DNSMASQ_FWD_NDOTS   |
 | --ndots                        | Number of dots a name must have before making an initial absolute query (supersedes /etc/resolv.conf) | 1  | $DNSMASQ_NDOTS |
