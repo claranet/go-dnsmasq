@@ -18,10 +18,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
+	"github.com/urfave/cli"
 
 	"github.com/claranet/go-dnsmasq/control"
 	"github.com/claranet/go-dnsmasq/hostsfile"
@@ -137,7 +137,7 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:   "rcache-non-negative",
-			Usage:  "Cache only non negative responses",
+			Usage:  "Cache only non negative responses and try other upstream servers if status is not `NOERROR`",
 			EnvVar: "GO_DNSMASQ_CACHE_NON_NEGATIVE",
 		},
 		cli.BoolFlag{
