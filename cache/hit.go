@@ -23,11 +23,13 @@ func (c *Cache) Hit(question dns.Question, dnssec, tcp bool, msgid uint16, keepS
 			m1.Compress = true
 			// Even if something ended up with the TC bit *in* the cache, set it to off
 			m1.Truncated = false
+			c.Lock()
 			if valid {
 				c.m[key].hits++
 			} else {
 				c.m[key].staleHits++
 			}
+			c.Unlock()
 			// Remove if stale expired
 			if time.Since(staleExp) > 0 {
 				c.Remove(key)
